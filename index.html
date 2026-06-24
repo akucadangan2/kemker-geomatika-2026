@@ -37,10 +37,6 @@
         .empty-state { text-align: center; color: #777; font-style: italic; font-size: 13px; }
 
         #map { flex-grow: 1; height: 100vh; }
-<<<<<<< HEAD
-        .mapboxgl-canvas-container.mapboxgl-interactive { cursor: default; }
-=======
->>>>>>> 651b574 (Update index.html + tambah Legend AOI)
     </style>
 </head>
 <body>
@@ -80,8 +76,6 @@
                 </div>
             </div>
 
-<<<<<<< HEAD
-=======
             <!-- LEGEND AOI -->
             <div class="control-group">
                 <label>Legend AOI (SIDODADI)</label>
@@ -101,7 +95,6 @@
                 </div>
             </div>
 
->>>>>>> 651b574 (Update index.html + tambah Legend AOI)
         </div>
     </div>
 
@@ -144,99 +137,6 @@
         var currentGlobalHeight = 3; 
 
         map.on('load', function () {
-<<<<<<< HEAD
-            
-            // UPDATE: Jalur pemanggilan file GeoJSON disesuaikan ke dalam folder 'kirim'
-            fetch('./kirim/PERMUKIMAN_MERGE_CLEAN.geojson')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Gagal memuat GeoJSON. Pastikan folder 'kirim' dan filenya ada.");
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    
-                    document.getElementById('total-bangunan').innerText = data.features.length + " Area";
-
-                    map.addSource('permukiman-data', {
-                        'type': 'geojson',
-                        'data': data
-                    });
-
-                    map.addLayer({
-                        'id': 'permukiman-3d',
-                        'type': 'fill-extrusion',
-                        'source': 'permukiman-data',
-                        'paint': {
-                            'fill-extrusion-color': [
-                                'interpolate', ['linear'], ['get', 'SHAPE_Area'],
-                                0, '#00ffcc',
-                                2000, '#0055ff'
-                            ],
-                            'fill-extrusion-height': ['get', 'TINGGI'],
-                            'fill-extrusion-base': 0,
-                            'fill-extrusion-opacity': 0.85
-                        }
-                    });
-
-                    var bbox = turf.bbox(data);
-                    map.fitBounds(bbox, { padding: 50, pitch: 60 });
-
-                    map.on('click', 'permukiman-3d', function (e) {
-                        if (e.features.length > 0) {
-                            var props = e.features[0].properties;
-                            
-                            var html = `
-                                <div class="data-row">
-                                    <span class="data-label">Luas Tapak (Area)</span>
-                                    <span class="data-value">${props.SHAPE_Area.toFixed(2)} m²</span>
-                                </div>
-                                <div class="data-row">
-                                    <span class="data-label">Panjang Keliling</span>
-                                    <span class="data-value">${props.SHAPE_Leng.toFixed(2)} m</span>
-                                </div>
-                                <div class="data-row">
-                                    <span class="data-label">Shape Length 1</span>
-                                    <span class="data-value">${props.Shape_Le_1.toFixed(2)}</span>
-                                </div>
-                                <div class="data-row">
-                                    <span class="data-label">Tinggi Render</span>
-                                    <span class="data-value">${currentGlobalHeight} m</span>
-                                </div>
-                            `;
-                            
-                            document.getElementById('feature-info').innerHTML = html;
-                        }
-                    });
-
-                    map.on('mouseenter', 'permukiman-3d', function () { map.getCanvas().style.cursor = 'pointer'; });
-                    map.on('mouseleave', 'permukiman-3d', function () { map.getCanvas().style.cursor = ''; });
-                })
-                .catch(err => console.error("Error memuat peta:", err));
-
-            var heightSlider = document.getElementById('height-slider');
-            var heightValue = document.getElementById('height-value');
-
-            heightSlider.addEventListener('input', function (e) {
-                var newHeight = parseInt(e.target.value);
-                currentGlobalHeight = newHeight;
-                heightValue.innerText = newHeight + "m";
-                map.setPaintProperty('permukiman-3d', 'fill-extrusion-height', newHeight);
-                
-                var detailTinggi = document.querySelector('.data-row:last-child .data-value');
-                if (detailTinggi) {
-                    detailTinggi.innerText = newHeight + " m";
-                }
-            });
-
-            var basemapSelect = document.getElementById('basemap-select');
-            basemapSelect.addEventListener('change', function (e) {
-                var selectedLayer = e.target.value;
-                map.setLayoutProperty('osm-layer', 'visibility', 'none');
-                map.setLayoutProperty('sat-layer', 'visibility', 'none');
-                map.setLayoutProperty('dark-layer', 'visibility', 'none');
-                map.setLayoutProperty(selectedLayer, 'visibility', 'visible');
-=======
             // Siapkan Sources
             map.addSource('aoi-data', { 'type': 'geojson', 'data': { type: 'FeatureCollection', features: [] } });
             map.addSource('permukiman-data', { 'type': 'geojson', 'data': { type: 'FeatureCollection', features: [] } });
@@ -303,13 +203,8 @@
                 ['osm-layer','sat-layer','dark-layer'].forEach(id => {
                     map.setLayoutProperty(id, 'visibility', id === e.target.value ? 'visible' : 'none');
                 });
->>>>>>> 651b574 (Update index.html + tambah Legend AOI)
             });
         });
     </script>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-</html>
->>>>>>> 651b574 (Update index.html + tambah Legend AOI)
