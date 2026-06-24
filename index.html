@@ -37,7 +37,10 @@
         .empty-state { text-align: center; color: #777; font-style: italic; font-size: 13px; }
 
         #map { flex-grow: 1; height: 100vh; }
+<<<<<<< HEAD
         .mapboxgl-canvas-container.mapboxgl-interactive { cursor: default; }
+=======
+>>>>>>> 651b574 (Update index.html + tambah Legend AOI)
     </style>
 </head>
 <body>
@@ -77,6 +80,28 @@
                 </div>
             </div>
 
+<<<<<<< HEAD
+=======
+            <!-- LEGEND AOI -->
+            <div class="control-group">
+                <label>Legend AOI (SIDODADI)</label>
+                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 24px; height: 24px; background-color: #ff0055; opacity: 0.08; border: 1px solid #ff0055; border-radius: 3px;"></div>
+                        <span>Area AOI (Fill Transparan)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 24px; height: 6px; background: linear-gradient(90deg, transparent, #ff0055, transparent); border-radius: 3px;"></div>
+                        <span>Glow Effect (Neon)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 24px; height: 3px; background: repeating-linear-gradient(90deg, #ffffff, #ffffff 4px, transparent 4px, transparent 8px);"></div>
+                        <span>Batas AOI (Putih Putus-putus)</span>
+                    </div>
+                </div>
+            </div>
+
+>>>>>>> 651b574 (Update index.html + tambah Legend AOI)
         </div>
     </div>
 
@@ -119,6 +144,7 @@
         var currentGlobalHeight = 3; 
 
         map.on('load', function () {
+<<<<<<< HEAD
             
             // UPDATE: Jalur pemanggilan file GeoJSON disesuaikan ke dalam folder 'kirim'
             fetch('./kirim/PERMUKIMAN_MERGE_CLEAN.geojson')
@@ -210,8 +236,80 @@
                 map.setLayoutProperty('sat-layer', 'visibility', 'none');
                 map.setLayoutProperty('dark-layer', 'visibility', 'none');
                 map.setLayoutProperty(selectedLayer, 'visibility', 'visible');
+=======
+            // Siapkan Sources
+            map.addSource('aoi-data', { 'type': 'geojson', 'data': { type: 'FeatureCollection', features: [] } });
+            map.addSource('permukiman-data', { 'type': 'geojson', 'data': { type: 'FeatureCollection', features: [] } });
+
+            // Layer AOI
+            map.addLayer({ id: 'aoi-fill', type: 'fill', source: 'aoi-data', paint: { 'fill-color': '#ff0055', 'fill-opacity': 0.05 }});
+            map.addLayer({ id: 'aoi-glow', type: 'line', source: 'aoi-data', paint: { 'line-color': '#ff0055', 'line-width': 8, 'line-opacity': 0.4, 'line-blur': 4 }});
+            map.addLayer({ id: 'aoi-line', type: 'line', source: 'aoi-data', paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-dasharray': [4, 2] }});
+
+            // Layer Permukiman 3D
+            map.addLayer({
+                'id': 'permukiman-3d',
+                'type': 'fill-extrusion',
+                'source': 'permukiman-data',
+                'paint': {
+                    'fill-extrusion-color': ['interpolate', ['linear'], ['get', 'SHAPE_Area'], 0, '#00ffcc', 2000, '#0055ff'],
+                    'fill-extrusion-height': ['get', 'TINGGI'],
+                    'fill-extrusion-base': 0,
+                    'fill-extrusion-opacity': 0.85
+                }
+            });
+
+            // Load Data
+            fetch('./kirim/SIDODADI.geojson')
+                .then(r => r.json())
+                .then(data => map.getSource('aoi-data').setData(data))
+                .catch(err => console.error("Error AOI:", err));
+
+            fetch('./kirim/PERMUKIMAN_MERGE_CLEAN.geojson')
+                .then(r => r.json())
+                .then(data => {
+                    map.getSource('permukiman-data').setData(data);
+                    document.getElementById('total-bangunan').innerText = data.features.length + " Area";
+                    map.fitBounds(turf.bbox(data), { padding: 50, pitch: 60 });
+                })
+                .catch(err => console.error("Error Permukiman:", err));
+
+            // Event Listeners
+            map.on('click', 'permukiman-3d', function (e) {
+                if (e.features.length > 0) {
+                    var props = e.features[0].properties;
+                    var html = `
+                        <div class="data-row"><span class="data-label">Luas Tapak</span><span class="data-value">${props.SHAPE_Area.toFixed(2)} m²</span></div>
+                        <div class="data-row"><span class="data-label">Panjang Keliling</span><span class="data-value">${props.SHAPE_Leng.toFixed(2)} m</span></div>
+                        <div class="data-row"><span class="data-label">Shape Length 1</span><span class="data-value">${props.Shape_Le_1.toFixed(2)}</span></div>
+                        <div class="data-row"><span class="data-label">Tinggi Render</span><span class="data-value">${currentGlobalHeight} m</span></div>
+                    `;
+                    document.getElementById('feature-info').innerHTML = html;
+                }
+            });
+
+            map.on('mouseenter', 'permukiman-3d', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave', 'permukiman-3d', () => map.getCanvas().style.cursor = '');
+
+            // Slider Height
+            document.getElementById('height-slider').addEventListener('input', function (e) {
+                currentGlobalHeight = parseInt(e.target.value);
+                document.getElementById('height-value').innerText = currentGlobalHeight + "m";
+                map.setPaintProperty('permukiman-3d', 'fill-extrusion-height', currentGlobalHeight);
+            });
+
+            // Basemap Switcher
+            document.getElementById('basemap-select').addEventListener('change', function (e) {
+                ['osm-layer','sat-layer','dark-layer'].forEach(id => {
+                    map.setLayoutProperty(id, 'visibility', id === e.target.value ? 'visible' : 'none');
+                });
+>>>>>>> 651b574 (Update index.html + tambah Legend AOI)
             });
         });
     </script>
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> 651b574 (Update index.html + tambah Legend AOI)
