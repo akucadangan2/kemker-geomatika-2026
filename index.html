@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEMKER 2026 LOD1</title>
+    
+    <link href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; overflow: hidden; background-color: #111; color: #eee; }
+        
+        #sidebar { width: 320px; background-color: #1a1a1a; display: flex; flex-direction: column; border-right: 1px solid #333; z-index: 10; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
+        .sidebar-header { background-color: #0055ff; padding: 20px; text-align: center; }
+        .sidebar-header h1 { margin: 0; font-size: 22px; color: #fff; letter-spacing: 1px; }
+        
+        .sidebar-content { padding: 20px; overflow-y: auto; flex-grow: 1; }
+        
+        .stat-box { background-color: #2a2a2a; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #00ffcc; }
+        .stat-box h3 { margin: 0 0 5px 0; font-size: 14px; color: #aaa; }
+        .stat-box p { margin: 0; font-size: 24px; font-weight: bold; color: #00ffcc; }
+
+        .control-group { background-color: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .control-group label { display: block; font-size: 14px; margin-bottom: 8px; font-weight: bold; color: #ccc; }
+        
+        .slider-container { display: flex; align-items: center; justify-content: space-between; }
+        input[type=range] { flex-grow: 1; margin-right: 10px; cursor: pointer; }
+        #height-value { font-weight: bold; color: #ffcc00; width: 40px; text-align: right; }
+
+        .basemap-selector select { width: 100%; padding: 8px; background-color: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+
+        #feature-info { background-color: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; }
+        .data-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #444; padding: 8px 0; font-size: 13px; }
+        .data-row:last-child { border-bottom: none; }
+        .data-label { color: #aaa; }
+        .data-value { color: #ffcc00; font-weight: bold; text-align: right; }
+        .empty-state { text-align: center; color: #777; font-style: italic; font-size: 13px; }
+
+        #map { flex-grow: 1; height: 100vh; }
+        .mapboxgl-canvas-container.mapboxgl-interactive { cursor: default; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h1>KEMKER 2026 LOD1</h1>
+        </div>
+        <div class="sidebar-content">
+            
+            <div class="stat-box">
+                <h3>Total Area Permukiman</h3>
+                <p id="total-bangunan">Menghitung...</p>
+            </div>
+
+            <div class="control-group">
+                <label>Atur Ketinggian LOD 1</label>
+                <div class="slider-container">
+                    <input type="range" id="height-slider" min="1" max="50" value="3" step="1">
+                    <span id="height-value">3m</span>
+                </div>
+            </div>
+
+            <div class="control-group basemap-selector">
+                <label>Peta Dasar</label>
+                <select id="basemap-select">
+                    <option value="sat-layer">Satelit (Esri Imagery)</option>
+                    <option value="dark-layer">Mode Gelap (Carto Dark)</option>
+                    <option value="osm-layer">Peta Standar (OSM)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Detail Atribut Objek</label>
+                <div id="feature-info">
+                    <div class="empty-state">Klik poligon permukiman di peta untuk melihat data.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        const basemaps = {
+            'osm-source': 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'sat-source': 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            'dark-source': 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+        };
+
+        var map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                'version': 8,
+                'sources': {
+                    'osm-source': { 'type': 'raster', 'tiles': [basemaps['osm-source']], 'tileSize': 256 },
+                    'sat-source': { 'type': 'raster', 'tiles': [basemaps['sat-source']], 'tileSize': 256 },
+                    'dark-source': { 'type': 'raster', 'tiles': [basemaps['dark-source']], 'tileSize': 256 }
+                },
+                'layers': [
+                    { 'id': 'osm-layer', 'type': 'raster', 'source': 'osm-source', 'layout': { 'visibility': 'none' } },
+                    { 'id': 'sat-layer', 'type': 'raster', 'source': 'sat-source', 'layout': { 'visibility': 'visible' } },
+                    { 'id': 'dark-layer', 'type': 'raster', 'source': 'dark-source', 'layout': { 'visibility': 'none' } }
+                ]
+            },
+            center: [118.0, -2.5],
+            zoom: 5,
+            pitch: 60,
+            bearing: -20,
+            antialias: true
+        });
+
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+        var currentGlobalHeight = 3; 
+
+        map.on('load', function () {
+            
+            // UPDATE: Jalur pemanggilan file GeoJSON disesuaikan ke dalam folder 'kirim'
+            fetch('./kirim/PERMUKIMAN_MERGE_CLEAN.geojson')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Gagal memuat GeoJSON. Pastikan folder 'kirim' dan filenya ada.");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    
+                    document.getElementById('total-bangunan').innerText = data.features.length + " Area";
+
+                    map.addSource('permukiman-data', {
+                        'type': 'geojson',
+                        'data': data
+                    });
+
+                    map.addLayer({
+                        'id': 'permukiman-3d',
+                        'type': 'fill-extrusion',
+                        'source': 'permukiman-data',
+                        'paint': {
+                            'fill-extrusion-color': [
+                                'interpolate', ['linear'], ['get', 'SHAPE_Area'],
+                                0, '#00ffcc',
+                                2000, '#0055ff'
+                            ],
+                            'fill-extrusion-height': ['get', 'TINGGI'],
+                            'fill-extrusion-base': 0,
+                            'fill-extrusion-opacity': 0.85
+                        }
+                    });
+
+                    var bbox = turf.bbox(data);
+                    map.fitBounds(bbox, { padding: 50, pitch: 60 });
+
+                    map.on('click', 'permukiman-3d', function (e) {
+                        if (e.features.length > 0) {
+                            var props = e.features[0].properties;
+                            
+                            var html = `
+                                <div class="data-row">
+                                    <span class="data-label">Luas Tapak (Area)</span>
+                                    <span class="data-value">${props.SHAPE_Area.toFixed(2)} m²</span>
+                                </div>
+                                <div class="data-row">
+                                    <span class="data-label">Panjang Keliling</span>
+                                    <span class="data-value">${props.SHAPE_Leng.toFixed(2)} m</span>
+                                </div>
+                                <div class="data-row">
+                                    <span class="data-label">Shape Length 1</span>
+                                    <span class="data-value">${props.Shape_Le_1.toFixed(2)}</span>
+                                </div>
+                                <div class="data-row">
+                                    <span class="data-label">Tinggi Render</span>
+                                    <span class="data-value">${currentGlobalHeight} m</span>
+                                </div>
+                            `;
+                            
+                            document.getElementById('feature-info').innerHTML = html;
+                        }
+                    });
+
+                    map.on('mouseenter', 'permukiman-3d', function () { map.getCanvas().style.cursor = 'pointer'; });
+                    map.on('mouseleave', 'permukiman-3d', function () { map.getCanvas().style.cursor = ''; });
+                })
+                .catch(err => console.error("Error memuat peta:", err));
+
+            var heightSlider = document.getElementById('height-slider');
+            var heightValue = document.getElementById('height-value');
+
+            heightSlider.addEventListener('input', function (e) {
+                var newHeight = parseInt(e.target.value);
+                currentGlobalHeight = newHeight;
+                heightValue.innerText = newHeight + "m";
+                map.setPaintProperty('permukiman-3d', 'fill-extrusion-height', newHeight);
+                
+                var detailTinggi = document.querySelector('.data-row:last-child .data-value');
+                if (detailTinggi) {
+                    detailTinggi.innerText = newHeight + " m";
+                }
+            });
+
+            var basemapSelect = document.getElementById('basemap-select');
+            basemapSelect.addEventListener('change', function (e) {
+                var selectedLayer = e.target.value;
+                map.setLayoutProperty('osm-layer', 'visibility', 'none');
+                map.setLayoutProperty('sat-layer', 'visibility', 'none');
+                map.setLayoutProperty('dark-layer', 'visibility', 'none');
+                map.setLayoutProperty(selectedLayer, 'visibility', 'visible');
+            });
+        });
+    </script>
+</body>
+</html>
